@@ -21,15 +21,8 @@
  */
 #include "learning/forests/lambdamart.h"
 
-#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <cfloat>
-#include <cmath>
-#include <boost/foreach.hpp>
-
-#include "data/rankedresults.h"
-#include "io/xml.h"
 
 namespace quickrank {
 namespace learning {
@@ -38,7 +31,8 @@ namespace forests {
 const std::string LambdaMart::NAME_ = "LAMBDAMART";
 
 
-void LambdaMart::init(std::shared_ptr<quickrank::data::VerticalDataset> training_dataset) {
+void
+LambdaMart::init(std::shared_ptr<quickrank::data::VerticalDataset> training_dataset) {
   Mart::init(training_dataset);
   const size_t nentries = training_dataset->num_instances();
   instance_weights_ = new double[nentries]();  //0.0f initialized
@@ -54,10 +48,10 @@ std::unique_ptr<RegressionTree> LambdaMart::fit_regressor_on_gradient(
     std::shared_ptr<data::VerticalDataset> training_dataset) {
   //Fit a regression tree
   /// \todo TODO: memory management of regression tree is wrong!!!
-  RegressionTree* tree = new RegressionTree(nleaves_, training_dataset.get(),
+  RegressionTree *tree = new RegressionTree(nleaves_, training_dataset.get(),
                                             pseudoresponses_, minleafsupport_);
   tree->fit(hist_);
-  //update the outputs of the tree (with gamma computed using the Newton-Raphson method)
+  //update the outputs of the tree (with gamma computed using the Newton-Raphson pruning_method)
   //float maxlabel =
   tree->update_output(pseudoresponses_, instance_weights_);
 
@@ -66,7 +60,7 @@ std::unique_ptr<RegressionTree> LambdaMart::fit_regressor_on_gradient(
 
 void LambdaMart::compute_pseudoresponses(
     std::shared_ptr<quickrank::data::VerticalDataset> training_dataset,
-    quickrank::metric::ir::Metric* scorer) {
+    quickrank::metric::ir::Metric *scorer) {
   const size_t cutoff = scorer->cutoff();
 
   const size_t nrankedlists = training_dataset->num_queries();

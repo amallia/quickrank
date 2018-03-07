@@ -23,9 +23,9 @@
 #include <fstream>
 #include <iomanip>
 #include <chrono>
-#include <string>
+#include <vector>
 
-#include <boost/program_options.hpp>
+#include "paramsmap/paramsmap.h"
 
 #include "data/dataset.h"
 #include "io/svml.h"
@@ -59,44 +59,34 @@ void print_logo() {
   }
 }
 
-double ranker(float* v);
+double ranker(float *v);
 
 int main(int argc, char *argv[]) {
   print_logo();
 
-  namespace po = boost::program_options;
+  ParamsMap pmap;
 
-  // parameters
-  std::string dataset_file;
-  size_t rounds = 10;
-  std::string scores_file;
+  // Declare the supported options.
+  pmap.addMessage({"QuickScore options:"});
+  pmap.addOption("help", "h", {"print help message"});
+  pmap.addOptionWithArg<std::string>("dataset", "d",
+                                     {"Input dataset in SVML format"});
+  pmap.addOptionWithArg<int>("rounds", "r", {"Number of test repetitions"}, 10);
+  pmap.addOptionWithArg<std::string>("scores", "s",
+                                     {"File where scores are saved (Optional)."});
 
-  // prepare options
-  po::options_description options("Options");
-  options.add_options()("help,h", "Print help messages");
-  options.add_options()("dataset,d",
-                        po::value<std::string>(&dataset_file)->required(),
-                        "Input dataset in SVML format");
-  options.add_options()("rounds,r",
-                        po::value<size_t>(&rounds)->default_value(rounds),
-                        "Number of test repetitions");
-  options.add_options()(
-      "scores,s",
-      po::value<std::string>(&scores_file)->default_value(scores_file),
-      "File where scores are saved");
-
-  // parse command line
-  po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, options), vm);
-
-  // print help
-  if (vm.count("help")) {
-    std::cout << options << "\n";
+  bool parse_status = pmap.parse(argc, argv);
+  if (!parse_status || pmap.isSet("help") || !pmap.isSet("dataset")) {
+    std::cout << pmap.help();
     return EXIT_FAILURE;
   }
 
-  // raise any error
-  po::notify(vm);
+  // parameters
+  std::string dataset_file = pmap.get<std::string>("dataset");
+  size_t rounds = pmap.get<int>("rounds");
+  std::string scores_file;
+  if (pmap.isSet("scores")) scores_file = pmap.get<std::string>("scores");
+
 
   // read dataset
   quickrank::io::Svml reader;
@@ -104,11 +94,11 @@ int main(int argc, char *argv[]) {
   std::cout << *dataset;
 
   // score dataset
-  double* scores = new double[dataset->num_instances()];
+  std::vector<double> scores(dataset->num_instances());
   auto start_scoring = std::chrono::high_resolution_clock::now();
 
   for (size_t r = 0; r < rounds; r++) {
-    float* document = dataset->at(0, 0);
+    float *document = dataset->at(0, 0);
     for (size_t i = 0; i < dataset->num_instances(); i++) {
       scores[i] = ranker(document);
       document += dataset->num_features();
@@ -133,14 +123,12 @@ int main(int argc, char *argv[]) {
   if (!scores_file.empty()) {
     std::fstream output;
     output.open(scores_file, std::ofstream::out);
-    output << std::setprecision(std::numeric_limits<double>::digits10);
+    output << std::setprecision(std::numeric_limits<double>::max_digits10);
     for (size_t i = 0; i < dataset->num_instances(); i++) {
       output << scores[i] << std::endl;
     }
     output.close();
   }
-
-  delete[] scores;
 
   return EXIT_SUCCESS;
 }

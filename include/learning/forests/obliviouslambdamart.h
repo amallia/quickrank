@@ -19,8 +19,7 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_LEARNING_FORESTS_OBLIVIOUSLAMBDAMART_H_
-#define QUICKRANK_LEARNING_FORESTS_OBLIVIOUSLAMBDAMART_H_
+#pragma once
 
 #include "types.h"
 #include "learning/forests/lambdamart.h"
@@ -31,7 +30,7 @@ namespace quickrank {
 namespace learning {
 namespace forests {
 
-class ObliviousLambdaMart : public LambdaMart {
+class ObliviousLambdaMart: public LambdaMart {
  public:
   /// Initializes a new ObliviousLambdaMart instance with the given learning parameters.
   ///
@@ -42,7 +41,7 @@ class ObliviousLambdaMart : public LambdaMart {
   /// \param minleafsupport Minimum number of instances in each leaf.
   /// \param esr Early stopping if no improvement after \esr iterations
   /// on the validation set.
-  ObliviousLambdaMart(size_t ntrees, float shrinkage,
+  ObliviousLambdaMart(size_t ntrees, double shrinkage,
                       size_t nthresholds, size_t treedepth,
                       size_t minleafsupport, size_t esr)
       : LambdaMart(ntrees, shrinkage, nthresholds, 1 << treedepth,
@@ -50,8 +49,7 @@ class ObliviousLambdaMart : public LambdaMart {
         treedepth_(treedepth) {
   }
 
-  ObliviousLambdaMart(const boost::property_tree::ptree &info_ptree,
-                      const boost::property_tree::ptree &model_ptree);
+  ObliviousLambdaMart(const pugi::xml_document &model);
 
   virtual ~ObliviousLambdaMart() {
   }
@@ -60,6 +58,10 @@ class ObliviousLambdaMart : public LambdaMart {
   virtual std::string name() const {
     return NAME_;
   }
+
+  virtual pugi::xml_document *get_xml_model() const;
+
+  virtual bool import_model_state(LTR_Algorithm &other);
 
   static const std::string NAME_;
 
@@ -70,24 +72,20 @@ class ObliviousLambdaMart : public LambdaMart {
   virtual std::unique_ptr<RegressionTree> fit_regressor_on_gradient(
       std::shared_ptr<data::VerticalDataset> training_dataset);
 
-  virtual std::ofstream& save_model_to_file(std::ofstream& os) const;
-
   size_t treedepth_;  //>0
 
  private:
   /// The output stream operator.
-  friend std::ostream& operator<<(std::ostream& os,
-                                  const ObliviousLambdaMart& a) {
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const ObliviousLambdaMart &a) {
     return a.put(os);
   }
 
   /// Prints the description of Algorithm, including its parameters.
-  virtual std::ostream& put(std::ostream& os) const;
+  virtual std::ostream &put(std::ostream &os) const;
 
 };
 
 }  // namespace forests
 }  // namespace learning
 }  // namespace quickrank
-
-#endif

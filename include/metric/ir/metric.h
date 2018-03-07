@@ -19,13 +19,11 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_METRIC_IR_METRIC_H_
-#define QUICKRANK_METRIC_IR_METRIC_H_
+#pragma once
 
 #include <iostream>
 #include <climits>
 #include <memory>
-#include <boost/noncopyable.hpp>
 
 #include <stdint.h>
 
@@ -42,7 +40,7 @@ namespace ir {
 /**
  * This class implements the basic functionalities of an IR evaluation metric.
  */
-class Metric : private boost::noncopyable {
+class Metric {
  public:
   /// This should be used when no cut-off on the results list is required.
   static const size_t NO_CUTOFF = SIZE_MAX;
@@ -74,13 +72,15 @@ class Metric : private boost::noncopyable {
   /// \param scores a list of scores
   /// \return The quality score of the result list.
   virtual MetricScore evaluate_result_list(
-      const quickrank::data::QueryResults* rl, const Score* scores) const = 0;
+      const quickrank::data::QueryResults *rl, const Score *scores) const = 0;
 
   virtual MetricScore evaluate_dataset(
-      const std::shared_ptr<data::Dataset> dataset, const Score* scores) const {
+      const std::shared_ptr<data::Dataset> dataset, const Score *scores) const {
     if (dataset->num_queries() == 0)
       return 0.0;
     MetricScore avg_score = 0.0;
+
+//    #pragma omp parallel for reduction(+:avg_score)
     for (size_t q = 0; q < dataset->num_queries(); q++) {
       std::shared_ptr<data::QueryResults> r = dataset->getQueryResults(q);
       avg_score += evaluate_result_list(r.get(), scores);
@@ -91,7 +91,8 @@ class Metric : private boost::noncopyable {
   }
 
   virtual MetricScore evaluate_dataset(
-      const std::shared_ptr<data::VerticalDataset> dataset, const Score* scores) const {
+      const std::shared_ptr<data::VerticalDataset> dataset,
+      const Score *scores) const {
     if (dataset->num_queries() == 0)
       return 0.0;
     MetricScore avg_score = 0.0;
@@ -116,7 +117,7 @@ class Metric : private boost::noncopyable {
         new Jacobian(ranked->num_results()));
     auto results = std::shared_ptr<data::QueryResults>(
         new data::QueryResults(ranked->num_results(), ranked->sorted_labels(),
-        NULL));
+                               NULL));
 
     MetricScore orig_score = evaluate_result_list(results.get(),
                                                   ranked->sorted_scores());
@@ -141,16 +142,14 @@ class Metric : private boost::noncopyable {
   size_t cutoff_;
 
   /// The output stream operator.
-  friend std::ostream& operator<<(std::ostream& os, const Metric& m) {
+  friend std::ostream &operator<<(std::ostream &os, const Metric &m) {
     return m.put(os);
   }
   /// Prints the short name of the Metric, e.g., "NDCG@K"
-  virtual std::ostream& put(std::ostream& os) const = 0;
+  virtual std::ostream &put(std::ostream &os) const = 0;
 
 };
 
 }  // namespace ir
 }  // namespace metric
 }  // namespace quickrank
-
-#endif

@@ -21,8 +21,10 @@
  */
 #include "utils/strutils.h"
 
-#include <cctype>
-#include <cstdlib>
+#include <algorithm>
+#include <iostream>
+
+#include <iomanip>
 
 /*! \file strutils.hpp
  * \brief some useful functions for strings
@@ -75,3 +77,26 @@ unsigned int atou(char *str, const char *sep) {
  while(*a!='\0' && *b!='\0') if(tolower(*a)!=tolower(*b)) return 1; else ++a, ++b;
  return (*a!='\0' || *b!='\0') ? 1 : 0;
  }*/
+
+std::string &trim(std::string &str) {
+  while (std::isspace(str[0])) {
+    str.erase(str.begin()); // erase it
+  }
+
+  // if the last character of the string is a whitespace or a tab
+  while (std::isspace(str[str.length() - 1])) {
+    str.erase(str.end() - 1); // erase it
+  }
+
+  return str;
+}
+
+void print_weights(std::vector<double> weights, std::string header) {
+  return;
+  std::cout << std::endl << "# " << header << std::endl;
+  for (size_t i=0; i < weights.size(); ++i) {
+    std::cout << std::setprecision(0) << i << ":"
+              << std::setprecision(3) << weights[i] << " ";
+  }
+  std::cout << std::endl << std::endl;
+}

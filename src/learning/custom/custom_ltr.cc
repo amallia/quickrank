@@ -21,10 +21,8 @@
  */
 #include "learning/custom/custom_ltr.h"
 
-#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <cfloat>
 #include <cmath>
 
 namespace quickrank {
@@ -38,7 +36,7 @@ CustomLTR::CustomLTR() {
 CustomLTR::~CustomLTR() {
 }
 
-std::ostream& CustomLTR::put(std::ostream& os) const {
+std::ostream &CustomLTR::put(std::ostream &os) const {
   os << "# Ranker: " << name() << std::endl;
   return os;
 }
@@ -53,8 +51,8 @@ void CustomLTR::learn(
   std::cout << std::fixed << std::setprecision(4);
 
   // allocate scores
-  Score* training_scores = new Score[training_dataset->num_instances()];
-  Score* validation_scores = new Score[validation_dataset->num_instances()];
+  Score *training_scores = new Score[training_dataset->num_instances()];
+  Score *validation_scores = new Score[validation_dataset->num_instances()];
 
   // set scores equal to fixed value
   for (size_t i = 0; i < training_dataset->num_instances(); i++)
@@ -80,17 +78,19 @@ void CustomLTR::learn(
   delete[] validation_scores;
 }
 
-// assumes vertical dataset
-Score CustomLTR::score_document(const quickrank::Feature* d) const {
+Score CustomLTR::score_document(const quickrank::Feature *d) const {
   return FIXED_SCORE;
 }
 
-std::ofstream& CustomLTR::save_model_to_file(std::ofstream& os) const {
-  // write ranker description
-  os << *this;
-  // save xml model
-  // TODO: Save model to file
-  return os;
+pugi::xml_document *CustomLTR::get_xml_model() const {
+  pugi::xml_document *doc = new pugi::xml_document();
+  doc->set_name("ranker");
+
+  pugi::xml_node info = doc->append_child("info");
+
+  info.append_child("type").text() = name().c_str();
+
+  return doc;
 }
 
 }  // namespace learning

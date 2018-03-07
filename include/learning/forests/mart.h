@@ -25,12 +25,17 @@
 #include "learning/ltr_algorithm.h"
 #include "learning/tree/rt.h"
 #include "learning/tree/ensemble.h"
+#include "learning/meta/meta_cleaver.h"
 
 namespace quickrank {
 namespace learning {
 namespace forests {
 
-class Mart : public LTR_Algorithm {
+class Mart: public LTR_Algorithm {
+
+  // TODO: remove friendness by refactoring the code to expose ensemble info
+  friend class quickrank::learning::meta::MetaCleaver;
+
  public:
   /// Initializes a new Mart instance with the given learning parameters.
   ///
@@ -41,7 +46,7 @@ class Mart : public LTR_Algorithm {
   /// \param minleafsupport Minimum number of instances in each leaf.
   /// \param valid_iterations Early stopping if no improvement after \esr iterations
   /// on the validation set.
-  Mart(size_t ntrees, float shrinkage, size_t nthresholds,
+  Mart(size_t ntrees, double shrinkage, size_t nthresholds,
        size_t ntreeleaves, size_t minleafsupport,
        size_t valid_iterations)
       : ntrees_(ntrees),
@@ -53,11 +58,9 @@ class Mart : public LTR_Algorithm {
   }
 
   /// Generates a LTR_Algorithm instance from a previously saved XML model.
-  Mart(const boost::property_tree::ptree &info_ptree,
-       const boost::property_tree::ptree &model_ptree);
+  Mart(const pugi::xml_document &model);
 
-  virtual ~Mart() {
-  }
+  virtual ~Mart();
 
   /// Start the learning process.
   virtual void learn(std::shared_ptr<data::Dataset> training_dataset,
@@ -69,8 +72,22 @@ class Mart : public LTR_Algorithm {
   /// Returns the score by the current ranker
   ///
   /// \param d Document to be scored.
-  virtual Score score_document(const Feature* d) const {
+  virtual Score score_document(const Feature *d) const {
     return ensemble_model_.score_instance(d, 1);
+  }
+
+  /// Returns the partial scores of a given document, tree.
+  /// \param d is a pointer to the document to be evaluated
+  /// \param next_fx_offset The offset to the next feature in the data representation.
+  /// \note   Each algorithm has a different implementation.
+  virtual std::shared_ptr<std::vector<Score>> partial_scores_document(
+      const Feature *d, bool ignore_weights=false) const {
+    // TODO: remove the following code...
+    if (!ensemble_model_.get_size()) {
+      std::cerr << "The model is empty..." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+    return ensemble_model_.partial_scores_instance(d, ignore_weights);
   }
 
   /// Print additional statistics.
@@ -83,13 +100,19 @@ class Mart : public LTR_Algorithm {
     return NAME_;
   }
 
+  virtual bool update_weights(std::vector<double>& weights);
+
+  virtual std::vector<double> get_weights() const {
+    return ensemble_model_.get_weights();
+  }
+
   static const std::string NAME_;
 
  protected:
 
   /// Prepares private data structures before training takes place.
   virtual void init(std::shared_ptr<data::VerticalDataset> training_dataset);
-
+  
   /// De-allocates private data structure after training has taken place.
   virtual void clear(size_t num_features);
 
@@ -99,7 +122,7 @@ class Mart : public LTR_Algorithm {
   /// \param metric The metric to be optimized.
   virtual void compute_pseudoresponses(
       std::shared_ptr<data::VerticalDataset> training_dataset,
-      metric::ir::Metric* metric);
+      metric::ir::Metric *metric);
 
   /// Fits a regression tree on the gradient given by the pseudo residuals
   ///
@@ -113,18 +136,24 @@ class Mart : public LTR_Algorithm {
   /// \param scores Scores vector to be updated.
   /// \param tree Last regression tree leartn.
   virtual void update_modelscores(std::shared_ptr<data::Dataset> dataset,
-                                  Score *scores, RegressionTree* tree);
+                                  Score *scores, RegressionTree *tree);
   virtual void update_modelscores(std::shared_ptr<data::VerticalDataset> dataset,
-                                  Score *scores, RegressionTree* tree);
+                                  Score *scores, RegressionTree *tree);
 
-  virtual std::ofstream& save_model_to_file(std::ofstream& os) const;
+  virtual pugi::xml_document *get_xml_model() const;
+
+  virtual bool import_model_state(LTR_Algorithm &other);
 
  protected:
   float **thresholds_ = NULL;
   size_t *thresholds_size_ = NULL;
-  double *scores_on_training_ = NULL;  //[0..nentries-1]
-  quickrank::Score* scores_on_validation_ = NULL;  //[0..nentries-1]
-  size_t validation_bestmodel_ = 0;
+
+  quickrank::Score* scores_on_training_ = NULL;
+  quickrank::MetricScore best_metric_on_training_ = 0;
+  quickrank::Score* scores_on_validation_ = NULL;
+  quickrank::MetricScore best_metric_on_validation_ = 0;
+
+  size_t best_model_ = 0;
   double *pseudoresponses_ = NULL;  //[0..nentries-1]
   Ensemble ensemble_model_;
 
@@ -133,7 +162,9 @@ class Mart : public LTR_Algorithm {
   size_t nthresholds_;  //if ==0 then no. of thresholds is not limited
   size_t nleaves_;  //>0
   size_t minleafsupport_;  //>0
-  size_t valid_iterations_;  //If no performance gain on validation data is observed in 'esr' rounds, stop the training process right away (if esr==0 feature is disabled).
+  size_t valid_iterations_;  // If no performance gain on validation data is
+                          // observed in 'esr' rounds, stop the training
+                          // process right away (if esr==0 feature is disabled).
 
   size_t **sortedsid_ = NULL;
   size_t sortedsize_ = 0;
@@ -141,12 +172,12 @@ class Mart : public LTR_Algorithm {
 
  private:
   /// The output stream operator.
-  friend std::ostream& operator<<(std::ostream& os, const Mart& a) {
+  friend std::ostream &operator<<(std::ostream &os, const Mart &a) {
     return a.put(os);
   }
 
   /// Prints the description of Algorithm, including its parameters.
-  virtual std::ostream& put(std::ostream& os) const;
+  virtual std::ostream &put(std::ostream &os) const;
 
 };
 

@@ -22,14 +22,13 @@
 #include <iostream>
 #include <iomanip>
 #include <chrono>
-
-#include <boost/container/list.hpp>
-#include <boost/container/vector.hpp>
-
-#include <boost/filesystem.hpp>
+#include <fstream>
+#include <sys/stat.h>
+#include <list>
 
 #include "io/svml.h"
 #include "utils/strutils.h"
+
 
 namespace quickrank {
 namespace io {
@@ -46,7 +45,9 @@ std::unique_ptr<data::Dataset> Svml::read_horizontal(
     exit(EXIT_FAILURE);
   }
 
-  file_size_ = boost::filesystem::file_size(filename);
+  struct stat filestatus;
+  stat(filename.c_str(), &filestatus);
+  file_size_ = filestatus.st_size;
 
   std::chrono::high_resolution_clock::time_point start_reading =
       std::chrono::high_resolution_clock::now();
@@ -54,9 +55,9 @@ std::unique_ptr<data::Dataset> Svml::read_horizontal(
   size_t maxfid = 0;
 
   // temporary copy of data
-  boost::container::list<size_t> data_qids;
-  boost::container::list<quickrank::Label> data_labels;
-  boost::container::list<boost::container::vector<quickrank::Feature> > data_instances;
+  std::list<size_t> data_qids;
+  std::list<quickrank::Label> data_labels;
+  std::list<std::vector<quickrank::Feature>> data_instances;
 
   while (not feof(f)) {
     //#pragma omp parallel for ordered reduction(max:maxfid) num_threads(4) schedule(static,1)
@@ -94,7 +95,7 @@ std::unique_ptr<data::Dataset> Svml::read_horizontal(
     size_t qid = atou(read_token(pch), "qid:");
 
     // allocate feature vector and read instance
-    boost::container::vector<quickrank::Feature> curr_instance(maxfid);
+    std::vector<quickrank::Feature> curr_instance(maxfid);
 
     //read a sequence of features, namely (fid,fval) pairs, then the ending description
     while (!ISEMPTY(token = read_token(pch, '#'))) {
@@ -123,7 +124,8 @@ std::unique_ptr<data::Dataset> Svml::read_horizontal(
     {
       data_qids.push_back(qid);
       data_labels.push_back(relevance);
-      data_instances.push_back(boost::move(curr_instance));  // move should avoid copies
+      data_instances.push_back(std::move(curr_instance));  // move should avoid
+      // copies
     }
     //free mem
     free(line);
@@ -135,12 +137,12 @@ std::unique_ptr<data::Dataset> Svml::read_horizontal(
       std::chrono::high_resolution_clock::now();
 
   // put partial data in final data structure
-  data::Dataset* dataset = new data::Dataset(data_qids.size(), maxfid);
+  data::Dataset *dataset = new data::Dataset(data_qids.size(), maxfid);
   auto i_q = data_qids.begin();
   auto i_l = data_labels.begin();
   auto i_x = data_instances.begin();
   while (i_q != data_qids.end()) {
-    dataset->addInstance(*i_q, *i_l, boost::move(*i_x));
+    dataset->addInstance(*i_q, *i_l, std::move(*i_x));
     i_q++;
     i_l++;
     i_x++;
@@ -158,7 +160,34 @@ std::unique_ptr<data::Dataset> Svml::read_horizontal(
   return std::unique_ptr<data::Dataset>(dataset);
 }
 
-std::ostream& Svml::put(std::ostream& os) const {
+void Svml::write(std::shared_ptr<data::Dataset> dataset,
+                 const std::string &file) {
+
+  std::ofstream outFile(file, std::ofstream::out | std::ofstream::trunc);
+
+  for (size_t q = 0; q < dataset->num_queries(); q++) {
+    std::shared_ptr<data::QueryResults> results = dataset->getQueryResults(q);
+    const Feature *features = results->features();
+    const Label *labels = results->labels();
+
+    for (size_t r = 0; r < results->num_results(); r++) {
+      outFile << std::setprecision(0) << labels[r] << " qid:" << q + 1;
+      for (size_t f = 0; f < dataset->num_features(); f++) {
+        outFile << " " << f + 1 << ":"
+                << std::fixed
+                << std::setprecision(
+                    std::numeric_limits<quickrank::Feature>::max_digits10)
+                << features[f];
+      }
+      outFile << std::endl;
+      features += dataset->num_features();
+    }
+  }
+
+  outFile.close();
+}
+
+std::ostream &Svml::put(std::ostream &os) const {
   // num threads is not reported here.
   os << std::setprecision(2) << "#\t Reading time: " << reading_time_
      << " s. @ " << file_size_ / 1024 / 1024 / reading_time_ << " MB/s "

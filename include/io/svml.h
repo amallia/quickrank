@@ -19,11 +19,9 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_IO_SVML_H_
-#define QUICKRANK_IO_SVML_H_
+#pragma once
 
 #include <string>
-#include <boost/noncopyable.hpp>
 
 #include "data/dataset.h"
 
@@ -45,7 +43,7 @@ namespace io {
 
  \todo TODO: handle feature filtering
  */
-class Svml : private boost::noncopyable {
+class Svml {
  public:
   /// Creates a new Svml IO reader/writer.
   ///
@@ -57,9 +55,16 @@ class Svml : private boost::noncopyable {
   }
 
   /// Reads the input dataset and returns in horizontal format.
-  /// \param filename the input filename.
+  /// \param file the input filename.
   /// \return The svml dataset in horizontal format.
   virtual std::unique_ptr<data::Dataset> read_horizontal(
+      const std::string &file);
+
+  /// Write the dataset to an output file.
+  /// \param file the output filename.
+  /// \return The svml dataset in horizontal format.
+  virtual void write(
+      std::shared_ptr<data::Dataset>,
       const std::string &file);
 
  private:
@@ -69,16 +74,14 @@ class Svml : private boost::noncopyable {
 
   /// The output stream operator.
   /// Prints the data reading time stats.
-  friend std::ostream& operator<<(std::ostream& os, const Svml& me) {
+  friend std::ostream &operator<<(std::ostream &os, const Svml &me) {
     return me.put(os);
   }
 
   /// Prints the data reading time stats
-  virtual std::ostream& put(std::ostream& os) const;
+  virtual std::ostream &put(std::ostream &os) const;
 
 };
 
 }  // namespace io
 }  // namespace quickrank
-
-#endif

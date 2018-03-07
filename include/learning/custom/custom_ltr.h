@@ -19,11 +19,9 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_LEARNING_CUSTOM_LTR_H_
-#define QUICKRANK_LEARNING_CUSTOM_LTR_H_
 
-#include <boost/noncopyable.hpp>
-#include <boost/property_tree/ptree.hpp>
+#pragma once
+
 #include <memory>
 
 #include "data/dataset.h"
@@ -42,13 +40,12 @@ namespace learning {
  --model model.xml
  */
 
-class CustomLTR : public LTR_Algorithm {
+class CustomLTR: public LTR_Algorithm {
 
  public:
   CustomLTR();
 
-  CustomLTR(const boost::property_tree::ptree &info_ptree,
-            const boost::property_tree::ptree &model_ptree) {
+  CustomLTR(const pugi::xml_document &model) {
   }
 
   virtual ~CustomLTR();
@@ -74,25 +71,25 @@ class CustomLTR : public LTR_Algorithm {
                      const std::string model_filename);
 
   /// Returns the score of a given document.
-  virtual Score score_document(const Feature* d) const;
+  virtual Score score_document(const Feature *d) const;
+
+  /// Return the xml model representing the current object
+  virtual pugi::xml_document *get_xml_model() const;
+
+  /// \todo TODO: add load_model();
 
   const Score FIXED_SCORE = 666.0;
 
  private:
 
   /// The output stream operator.
-  friend std::ostream& operator<<(std::ostream& os, const CustomLTR& a) {
+  friend std::ostream &operator<<(std::ostream &os, const CustomLTR &a) {
     return a.put(os);
   }
 
   /// Prints the description of Algorithm, including its parameters
-  virtual std::ostream& put(std::ostream& os) const;
-
-  /// Save the current model in the given output file stream.
-  virtual std::ofstream& save_model_to_file(std::ofstream& of) const;
+  virtual std::ostream &put(std::ostream &os) const;
 };
 
 }  // namespace learning
 }  // namespace quickrank
-
-#endif

@@ -19,10 +19,14 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_UTILS_STRUTILS_H_
-#define QUICKRANK_UTILS_STRUTILS_H_
+#pragma once
 
 #include <cctype>
+#include <string>
+
+#include <iostream>
+#include <string>
+#include <vector>
 
 /*! \file strutils.hpp
  * \brief some useful functions for strings
@@ -53,4 +57,9 @@ bool is_empty(const char *str);
  */
 unsigned int atou(char *str, const char *sep);
 
-#endif
+/*! \fn void trim(std::string& str)
+ *  \brief delete spaces from start/end of a string (in place modification)
+ */
+std::string &trim(std::string &str);
+
+void print_weights(std::vector<double> weights, std::string header);

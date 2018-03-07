@@ -19,8 +19,7 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_LEARNING_FORESTS_OBLIVIOUSMART_H_
-#define QUICKRANK_LEARNING_FORESTS_OBLIVIOUSMART_H_
+#pragma once
 
 #include "types.h"
 #include "learning/forests/mart.h"
@@ -31,7 +30,7 @@ namespace quickrank {
 namespace learning {
 namespace forests {
 
-class ObliviousMart : public Mart {
+class ObliviousMart: public Mart {
  public:
   /// Initializes a new ObliviousLambdaMart instance with the given learning parameters.
   ///
@@ -42,7 +41,7 @@ class ObliviousMart : public Mart {
   /// \param minleafsupport Minimum number of instances in each leaf.
   /// \param esr Early stopping if no improvement after \esr iterations
   /// on the validation set.
-  ObliviousMart(size_t ntrees, float shrinkage, size_t nthresholds,
+  ObliviousMart(size_t ntrees, double shrinkage, size_t nthresholds,
                 size_t treedepth, size_t minleafsupport,
                 size_t esr)
       : Mart(ntrees, shrinkage, nthresholds, 1 << treedepth, minleafsupport,
@@ -50,8 +49,7 @@ class ObliviousMart : public Mart {
         treedepth_(treedepth) {
   }
 
-  ObliviousMart(const boost::property_tree::ptree &info_ptree,
-                const boost::property_tree::ptree &model_ptree);
+  ObliviousMart(const pugi::xml_document &model);
 
   virtual ~ObliviousMart() {
   }
@@ -60,6 +58,8 @@ class ObliviousMart : public Mart {
   virtual std::string name() const {
     return NAME_;
   }
+
+  virtual bool import_model_state(LTR_Algorithm &other);
 
   static const std::string NAME_;
 
@@ -70,23 +70,21 @@ class ObliviousMart : public Mart {
   virtual std::unique_ptr<RegressionTree> fit_regressor_on_gradient(
       std::shared_ptr<data::VerticalDataset> training_dataset);
 
-  virtual std::ofstream& save_model_to_file(std::ofstream& os) const;
+  virtual pugi::xml_document *get_xml_model() const;
 
   size_t treedepth_;  //>0
 
  private:
   /// The output stream operator.
-  friend std::ostream& operator<<(std::ostream& os, const ObliviousMart& a) {
+  friend std::ostream &operator<<(std::ostream &os, const ObliviousMart &a) {
     return a.put(os);
   }
 
   /// Prints the description of Algorithm, including its parameters.
-  virtual std::ostream& put(std::ostream& os) const;
+  virtual std::ostream &put(std::ostream &os) const;
 
 };
 
 }  // namespace forests
 }  // namespace learning
 }  // namespace quickrank
-
-#endif

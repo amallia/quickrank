@@ -19,47 +19,87 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_LEARNING_TREE_ENSEMBLE_H_
-#define QUICKRANK_LEARNING_TREE_ENSEMBLE_H_
+#pragma once
 
 #include "learning/tree/rt.h"
 #include "types.h"
+#include "pugixml/src/pugixml.hpp"
 
 class Ensemble {
 
  public:
+  Ensemble() {};
+
+  // move constructor
+  Ensemble(Ensemble&& source);
+
   virtual ~Ensemble();
+
+  // move assignment operator
+  Ensemble& operator=(Ensemble&& other);
+
   void set_capacity(const size_t n);
-  void push(RTNode *root, const float weight, const float maxlabel);
+  void push(RTNode *root, const double weight, const float maxlabel);
   void pop();
 
   size_t get_size() const {
     return size;
   }
+
   bool is_notempty() const {
     return size > 0;
   }
 
-  // assumes vertical dataset
-  virtual quickrank::Score score_instance(const quickrank::Feature* d,
+  virtual quickrank::Score score_instance(const quickrank::Feature *d,
                                           const size_t offset = 1) const;
 
-  void write_outputtofile(FILE *f);
-  std::ofstream& save_model_to_file(std::ofstream& os) const;
+  virtual std::shared_ptr<std::vector<quickrank::Score>>
+      partial_scores_instance(const quickrank::Feature *d,
+                              bool ignore_weights = false,
+                              const size_t offset = 1) const;
+
+  pugi::xml_node append_xml_model(pugi::xml_node parent) const;
+
+  virtual bool update_ensemble_weights(std::vector<double>& weights);
+
+  virtual bool filter_out_zero_weighted_trees();
+
+  virtual bool update_ensemble_weights(
+      std::vector<double>& weights, bool remove);
+
+  virtual std::vector<double> get_weights() const;
+
+  inline RTNode* getTree(int index) const {
+    return arr[index].root;
+  }
+
+  inline double getWeight(int index) const {
+    return arr[index].weight;
+  }
 
  private:
-  struct wt {
-    wt(RTNode *root, float weight, float maxlabel)
+
+  struct weighted_tree {
+
+    weighted_tree(RTNode *root, double weight, float maxlabel)
         : root(root),
           weight(weight),
-          maxlabel(maxlabel) {
+          maxlabel(maxlabel) { }
+
+    weighted_tree(const weighted_tree& source) {
+      weight = source.weight;
+      maxlabel = source.maxlabel;
+      root = new RTNode(*(source.root));
     }
-    RTNode *root = NULL;
-    float weight = 0.0f;
+
+    RTNode* root = nullptr;
+    double weight = 0.0;
     float maxlabel = 0.0f;
   };
-  size_t size = 0;
-  wt *arr = NULL;
-};
 
-#endif
+  size_t size = 0;
+  size_t capacity = 0;
+  weighted_tree* arr = nullptr;
+
+  void reset_state();
+};

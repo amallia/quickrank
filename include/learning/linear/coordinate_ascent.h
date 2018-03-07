@@ -21,11 +21,8 @@
  *  - Chiara Pierucci (chiarapierucci14@gmail.com)
  *  - Claudio Lucchese (claudio.lucchese@isti.cnr.it)
  */
-#ifndef QUICKRANK_LEARNING_COORDINATE_ASCENT_H_
-#define QUICKRANK_LEARNING_COORDINATE_ASCENT_H_
+#pragma once
 
-#include <boost/noncopyable.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <memory>
 
 #include "data/dataset.h"
@@ -40,15 +37,14 @@ namespace linear {
 ///
 /// Metzler, D., Croft, W.B.: Linear feature-based models for information retrieval.
 /// Information Retrieval 10(3), 257–274 (2007)
-class CoordinateAscent : public LTR_Algorithm {
+class CoordinateAscent: public LTR_Algorithm {
 
  public:
-  CoordinateAscent(size_t num_points, double window_size,
-                   double reduction_factor, size_t max_iterations,
-                   size_t max_failed_vali);
+  CoordinateAscent(unsigned int num_points, double window_size,
+                   double reduction_factor, unsigned int max_iterations,
+                   unsigned int max_failed_vali);
 
-  CoordinateAscent(const boost::property_tree::ptree &info_ptree,
-                   const boost::property_tree::ptree &model_ptree);
+  CoordinateAscent(const pugi::xml_document &model);
 
   virtual ~CoordinateAscent();
 
@@ -73,31 +69,36 @@ class CoordinateAscent : public LTR_Algorithm {
                      const std::string model_filename);
 
   /// Returns the score of a given document.
-  virtual Score score_document(const Feature* d) const;
+  virtual Score score_document(const Feature *d) const;
+
+  /// Return the xml model representing the current object
+  virtual pugi::xml_document *get_xml_model() const;
+
+  /// Returns the learned weights
+  virtual std::vector<double> get_weights() const {
+    return best_weights_;
+  }
+
+  virtual bool update_weights(std::vector<double>& weights);
 
  private:
   std::vector<double> best_weights_;
 
-  size_t num_samples_;
+  unsigned int num_samples_;
   double window_size_;
   double reduction_factor_;
-  size_t max_iterations_;
-  size_t max_failed_vali_;
+  unsigned int max_iterations_;
+  unsigned int max_failed_vali_;
 
   /// The output stream operator.
-  friend std::ostream& operator<<(std::ostream& os, const CoordinateAscent& a) {
+  friend std::ostream &operator<<(std::ostream &os, const CoordinateAscent &a) {
     return a.put(os);
   }
 
   /// Prints the description of Algorithm, including its parameters
-  virtual std::ostream& put(std::ostream& os) const;
-
-  /// Save the current model in the given output file stream.
-  virtual std::ofstream& save_model_to_file(std::ofstream& of) const;
+  virtual std::ostream &put(std::ostream &os) const;
 };
 
 }  // namespace linear
 }  // namespace learning
 }  // namespace quickrank
-
-#endif

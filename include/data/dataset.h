@@ -23,8 +23,7 @@
 
 #include <iostream>
 #include <memory>
-
-#include <boost/container/vector.hpp>
+#include <vector>
 
 #include "types.h"
 #include "data/queryresults.h"
@@ -43,7 +42,7 @@ namespace data {
  * to support fast access and custom high performance implementations.
  * Internal representation is horizontal (instances x features).
  */
-class Dataset{
+class Dataset {
  public:
 
   /// Allocates an empty Dataset of given size in horizontal format.
@@ -54,16 +53,16 @@ class Dataset{
   virtual ~Dataset();
 
   /// Avoid inefficient copy constructor
-  Dataset( const Dataset& other ) = delete;
+  Dataset(const Dataset &other) = delete;
   /// Avoid inefficient copy assignment
-  Dataset& operator=( const Dataset& ) = delete;
+  Dataset &operator=(const Dataset &) = delete;
 
   /// Returns a pointer to a specific data item.
   ///
   /// \param document_id The document of interest.
   /// \param feature_id The feature of interest.
   /// \returns A reference to the requested feature value of the given document id.
-  quickrank::Feature* at(size_t document_id, size_t feature_id) {
+  quickrank::Feature *at(size_t document_id, size_t feature_id) {
     return data_ + document_id * num_features_ + feature_id;
   }
 
@@ -72,7 +71,8 @@ class Dataset{
     return labels_[document_id];
   }
 
-  /// Returns the offset in the internal data strcutures of the i-th query results list.
+  /// Returns the offset in the internal data structure of the i-th query
+  /// results list.
   ///
   /// \param i The i-th query results list of interest.
   /// \returns The offset of the first document in the i-th query results list.
@@ -94,7 +94,7 @@ class Dataset{
   /// \param i_label The relevance label of the result.
   /// \param i_features The feature vector of the document.
   void addInstance(QueryID q_id, Label i_label,
-                   boost::container::vector<Feature> i_features);
+                   std::vector<Feature> i_features);
 
   /// Returns the number of features used to represent a document.
   size_t num_features() const {
@@ -119,21 +119,21 @@ class Dataset{
   size_t num_queries_;
   size_t num_instances_;
 
-  quickrank::Feature* data_ = NULL;
-  quickrank::Label* labels_ = NULL;
-  boost::container::vector<size_t> offsets_;
+  quickrank::Feature *data_ = NULL;
+  quickrank::Label *labels_ = NULL;
+  std::vector<size_t> offsets_;
 
   size_t last_instance_id_;
   size_t max_instances_;
 
   /// The output stream operator.
   /// Prints the data reading time stats
-  friend std::ostream& operator<<(std::ostream& os, const Dataset& me) {
+  friend std::ostream &operator<<(std::ostream &os, const Dataset &me) {
     return me.put(os);
   }
 
   /// Prints the data reading time stats
-  virtual std::ostream& put(std::ostream& os) const;
+  virtual std::ostream &put(std::ostream &os) const;
 
 };
 

@@ -30,7 +30,7 @@ namespace ir {
 
 const std::string Dcg::NAME_ = "DCG";
 
-MetricScore Dcg::compute_dcg(const Label* labels, size_t len) const {
+MetricScore Dcg::compute_dcg(const Label *labels, size_t len) const {
   const size_t size = std::min(cutoff(), len);
   double dcg = 0.0;
   for (size_t i = 0; i < size; ++i)
@@ -38,13 +38,15 @@ MetricScore Dcg::compute_dcg(const Label* labels, size_t len) const {
   return (MetricScore) dcg;
 }
 
-MetricScore Dcg::evaluate_result_list(const quickrank::data::QueryResults* rl,
-                                      const Score* scores) const {
-  if (rl->num_results() == 0)
+MetricScore Dcg::evaluate_result_list(const quickrank::data::QueryResults *rl,
+                                      const Score *scores) const {
+  const size_t size = std::min(cutoff(), rl->num_results());
+
+  if (size == 0)
     return 0.0;
 
   // we have at most cutoff to be evaluated
-  Label* sorted_l = new Label[cutoff()];
+  Label *sorted_l = new Label[size];
   rl->sorted_labels(scores, sorted_l, cutoff());
 
   MetricScore dcg = compute_dcg(sorted_l, rl->num_results());
@@ -63,25 +65,24 @@ std::unique_ptr<Jacobian> Dcg::jacobian(
   for (size_t i = 0; i < size; ++i) {
     for (size_t j = i + 1; j < ranked->num_results(); ++j) {
       // if the score is the same, non changes occur
-      if (ranked->sorted_labels()[ranked->pos_of_rank(i)]
-          != ranked->sorted_labels()[ranked->pos_of_rank(j)]) {
-        //*p_jacobian =
-        jacobian->at(ranked->pos_of_rank(i), ranked->pos_of_rank(j)) =
-            (1.0f / log2((double) (i + 2)) - 1.0f / log2((double) (j + 2)))
-                * (pow(2.0,
-                       (double) ranked->sorted_labels()[ranked->pos_of_rank(i)])
-                    - pow(
-                        2.0,
-                        (double) ranked->sorted_labels()[ranked->pos_of_rank(j)]));
+      if (ranked->sorted_labels()[i] != ranked->sorted_labels()[j]) {
+        if (j < size)
+          jacobian->at(i, j) =
+              (1.0f / log2((double) (j + 2)) - 1.0f / log2((double) (i + 2)))
+                  * (pow(2.0, (double) ranked->sorted_labels()[i])
+                      - pow(2.0, (double) ranked->sorted_labels()[j]));
+        else
+          jacobian->at(i, j) = (-1.0f / log2((double) (i + 2)))
+              * (   pow(2.0, (double) ranked->sorted_labels()[i])
+                  - pow(2.0, (double) ranked->sorted_labels()[j]) );
       }
-      //p_jacobian++;
     }
   }
 
   return jacobian;
 }
 
-std::ostream& Dcg::put(std::ostream& os) const {
+std::ostream &Dcg::put(std::ostream &os) const {
   if (cutoff() != Metric::NO_CUTOFF)
     return os << name() << "@" << cutoff();
   else

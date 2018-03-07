@@ -19,8 +19,7 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_LEARNING_TREE_RT_H_
-#define QUICKRANK_LEARNING_TREE_RT_H_
+#pragma once
 
 #include <cfloat>
 #include <cmath>
@@ -31,9 +30,9 @@
 #include "learning/tree/rtnode.h"
 #include "learning/tree/rtnode_histogram.h"
 
-typedef MaxHeap<RTNode*> rt_maxheap;
+typedef MaxHeap<RTNode *> rt_maxheap;
 
-class DevianceMaxHeap : public rt_maxheap {
+class DevianceMaxHeap: public rt_maxheap {
  public:
   DevianceMaxHeap(unsigned int initsize)
       : rt_maxheap(initsize) {
@@ -44,9 +43,10 @@ class DevianceMaxHeap : public rt_maxheap {
 
 class RegressionTree {
  protected:
-  const size_t nrequiredleaves;  //0 for unlimited number of nodes (the size of the tree will then be controlled only by minls)
+  const size_t
+      nrequiredleaves;  //0 for unlimited number of nodes (the size of the tree will then be controlled only by minls)
   const size_t minls;  //minls>0
-  quickrank::data::VerticalDataset* training_dataset = NULL;
+  quickrank::data::VerticalDataset *training_dataset = NULL;
   double *training_labels = NULL;
   RTNode **leaves = NULL;
   size_t nleaves = 0;
@@ -79,4 +79,3 @@ class RegressionTree {
 
 };
 
-#endif

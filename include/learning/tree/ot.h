@@ -19,19 +19,21 @@
  * Contributor:
  *   HPC. Laboratory - ISTI - CNR - http://hpc.isti.cnr.it/
  */
-#ifndef QUICKRANK_LEARNING_TREE_OT_H_
-#define QUICKRANK_LEARNING_TREE_OT_H_
+#pragma once
 
 #include <cfloat>
 #include <cmath>
 
 #include "learning/tree/rt.h"
 
-class ObliviousRT : public RegressionTree {
+class ObliviousRT: public RegressionTree {
  public:
 
-  ObliviousRT(size_t nodes, quickrank::data::VerticalDataset *dps, double *labels,
-              size_t minls, size_t treedepth)
+  ObliviousRT(size_t nodes,
+              quickrank::data::VerticalDataset *dps,
+              double *labels,
+              size_t minls,
+              size_t treedepth)
       : RegressionTree(nodes, dps, labels, minls),
         treedepth(treedepth) {
   }
@@ -45,5 +47,3 @@ class ObliviousRT : public RegressionTree {
             RTNodeHistogram const *hist);
   const double invalid = -DBL_MAX;
 };
-
-#endif
